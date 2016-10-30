@@ -26,18 +26,21 @@ define([
   var openPage = FunctionalHelpers.openPage;
   var testElementTextInclude = FunctionalHelpers.testElementTextInclude;
 
-  var openPageWithQueryParams = function (context, queryParams, expectedHeader) {
+  var openPageWithQueryParams = function (queryParams, expectedHeader) {
     var queryParamsString = '?' + Querystring.stringify(queryParams || {});
 
-    return openPage(context, SIGNUP_ROOT + queryParamsString, expectedHeader);
+    return this.parent
+      .then(openPage(SIGNUP_ROOT + queryParamsString, expectedHeader));
   };
 
-  var openSignUpExpect200 = function (context, queryParams) {
-    return openPageWithQueryParams(context, queryParams, '#fxa-signup-header');
+  var openSignUpExpect200 = function (queryParams) {
+    return this.parent
+      .then(openPageWithQueryParams(queryParams, '#fxa-signup-header'));
   };
 
-  var openSignUpExpect400 = function (context, queryParams) {
-    return openPageWithQueryParams(context, queryParams, '#fxa-400-header');
+  var openSignUpExpect400 = function (queryParams) {
+    return this.parent
+      .then(openPageWithQueryParams(queryParams, '#fxa-400-header'));
   };
 
   var testErrorInclude = function (expected) {
@@ -74,7 +77,7 @@ define([
     },
 
     'invalid access_type': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         access_type: 'invalid',
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE
@@ -84,7 +87,7 @@ define([
     },
 
     'valid access_type (offline)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         access_type: 'offline',
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE
@@ -92,7 +95,7 @@ define([
     },
 
     'valid access_type (online)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         access_type: 'online',
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE
@@ -100,7 +103,7 @@ define([
     },
 
     'missing client_id': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         scope: TRUSTED_SCOPE
       })
       .then(testErrorInclude('missing'))
@@ -108,7 +111,7 @@ define([
     },
 
     'empty client_id': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: '',
         scope: TRUSTED_SCOPE
       })
@@ -117,7 +120,7 @@ define([
     },
 
     'space client_id': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: ' ',
         scope: TRUSTED_SCOPE
       })
@@ -126,7 +129,7 @@ define([
     },
 
     'invalid client_id': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: 'invalid_client_id',
         scope: TRUSTED_SCOPE
       })
@@ -135,7 +138,7 @@ define([
     },
 
     'unknown client_id': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: 'deadbeef',
         scope: TRUSTED_SCOPE
       })
@@ -143,14 +146,14 @@ define([
     },
 
     'missing keys': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE
       });
     },
 
     'empty keys': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         keys: '',
         scope: TRUSTED_SCOPE
@@ -160,7 +163,7 @@ define([
     },
 
     'space keys': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         keys: ' ',
         scope: TRUSTED_SCOPE
@@ -170,7 +173,7 @@ define([
     },
 
     'invalid keys': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         keys: 'asdf',
         scope: TRUSTED_SCOPE
@@ -180,7 +183,7 @@ define([
     },
 
     'valid keys (true)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         keys: 'true',
         scope: TRUSTED_SCOPE
@@ -188,7 +191,7 @@ define([
     },
 
     'valid keys (false)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         keys: 'false',
         scope: TRUSTED_SCOPE
@@ -196,7 +199,7 @@ define([
     },
 
     'empty prompt': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         prompt: '',
         scope: TRUSTED_SCOPE
@@ -206,7 +209,7 @@ define([
     },
 
     'space prompt': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         prompt: ' ',
         scope: TRUSTED_SCOPE
@@ -216,7 +219,7 @@ define([
     },
 
     'invalid prompt': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         prompt: 'invalid',
         scope: TRUSTED_SCOPE
@@ -226,7 +229,7 @@ define([
     },
 
     'valid prompt (consent)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         prompt: 'consent',
         scope: TRUSTED_SCOPE
@@ -234,7 +237,7 @@ define([
     },
 
     'invalid redirectTo (url)': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         redirectTo: '127.0.0.1',
         scope: TRUSTED_SCOPE
@@ -244,7 +247,7 @@ define([
     },
 
     'valid redirectTo (url)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         redirectTo: 'http://127.0.0.1',
         scope: TRUSTED_SCOPE
@@ -252,7 +255,7 @@ define([
     },
 
     'invalid redirect_uri (url)': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         redirect_uri: '127.0.0.1',
         scope: TRUSTED_SCOPE
@@ -262,7 +265,7 @@ define([
     },
 
     'valid redirect_uri (url)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         redirect_uri: 'http://127.0.0.1',
         scope: TRUSTED_SCOPE
@@ -270,7 +273,7 @@ define([
     },
 
     'missing scope': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID
       })
       .then(testErrorInclude('missing'))
@@ -278,7 +281,7 @@ define([
     },
 
     'empty scope': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         scope: ''
       })
@@ -287,7 +290,7 @@ define([
     },
 
     'space scope': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         scope: ' '
       })
@@ -296,7 +299,7 @@ define([
     },
 
     'no valid scopes (untrusted)': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: UNTRUSTED_CLIENT_ID,
         scope: UNTRUSTED_NO_VALID_SCOPES
       })
@@ -305,21 +308,21 @@ define([
     },
 
     'valid scope (trusted)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE
       });
     },
 
     'valid scope (untrusted)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: UNTRUSTED_CLIENT_ID,
         scope: UNTRUSTED_SCOPE
       });
     },
 
     'invalid verification_redirect': function () {
-      return openSignUpExpect400(this, {
+      return openSignUpExpect400({
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE,
         verification_redirect: 'invalid'
@@ -329,7 +332,7 @@ define([
     },
 
     'valid verification_redirect (always)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE,
         verification_redirect: 'always'
@@ -337,7 +340,7 @@ define([
     },
 
     'valid verification_redirect (no)': function () {
-      return openSignUpExpect200(this, {
+      return openSignUpExpect200({
         client_id: TRUSTED_CLIENT_ID,
         scope: TRUSTED_SCOPE,
         verification_redirect: 'no'

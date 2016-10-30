@@ -67,7 +67,7 @@ define([
    * Programatically initiate a reset password using the
    * FxA Client. Saves the token and code.
    */
-  function initiateResetPassword(context, emailAddress, emailNumber) {
+  function initiateResetPassword(emailAddress, emailNumber) {
     ensureFxaJSClient();
 
     return client.passwordForgotSendCode(emailAddress)
@@ -76,7 +76,7 @@ define([
       });
   }
 
-  var openCompleteResetPassword = thenify(function (context, email, token, code, header) {
+  var openCompleteResetPassword = thenify(function (email, token, code, header) {
     var url = COMPLETE_PAGE_URL_ROOT + '?';
 
     var queryParams = [];
@@ -93,7 +93,8 @@ define([
     }
 
     url += queryParams.join('&');
-    return openPage(context, url, header);
+    return this.parent
+      .then(openPage(url, header));
   });
 
   function testAtSettingsWithVerifiedMessage(context) {
@@ -131,11 +132,13 @@ define([
       // user is immediately redirected to /reset_password if they have no
       // sessionToken.
       // Success is showing the screen
-      return openPage(this, CONFIRM_PAGE_URL, '#fxa-reset-password-header');
+      return this.parent
+        .then(openPage(CONFIRM_PAGE_URL, '#fxa-reset-password-header'));
     },
 
     'open /reset_password page from /signin': function () {
-      return openPage(this, SIGNIN_PAGE_URL, '#fxa-signin-header')
+      return this.parent
+        .then(openPage(SIGNIN_PAGE_URL, '#fxa-signin-header'))
 
         .then(type('input[type=email]', email))
 
@@ -192,80 +195,78 @@ define([
     },
 
     'open complete page with missing token shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, email, null, code, '#fxa-reset-link-damaged-header'
+          email, null, code, '#fxa-reset-link-damaged-header'
         ));
     },
 
     'open complete page with malformed token shows damaged screen': function () {
-      var self = this;
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(function () {
           var malformedToken = createRandomHexString(token.length - 1);
           return openCompleteResetPassword(
-            self, email, malformedToken, code, '#fxa-reset-link-damaged-header')();
+            email, malformedToken, code, '#fxa-reset-link-damaged-header')();
         });
     },
 
     'open complete page with invalid token shows expired screen': function () {
-      var self = this;
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(function () {
           var invalidToken = createRandomHexString(token.length);
           return openCompleteResetPassword(
-            self, email, invalidToken, code, '#fxa-reset-link-expired-header')();
+            email, invalidToken, code, '#fxa-reset-link-expired-header')();
         });
     },
 
     'open complete page with empty token shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, email, '', code, '#fxa-reset-link-damaged-header'
+          email, '', code, '#fxa-reset-link-damaged-header'
         ));
     },
 
     'open complete page with missing code shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, email, token, null, '#fxa-reset-link-damaged-header'
+          email, token, null, '#fxa-reset-link-damaged-header'
         ));
     },
 
     'open complete page with empty code shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, email, token, '', '#fxa-reset-link-damaged-header'
+          email, token, '', '#fxa-reset-link-damaged-header'
         ));
     },
 
     'open complete page with malformed code shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(function () {
           var malformedCode = createRandomHexString(code.length - 1);
           return openCompleteResetPassword(
-            this, email, token, malformedCode, '#fxa-reset-link-damaged-header');
+            email, token, malformedCode, '#fxa-reset-link-damaged-header');
         });
     },
 
     'open complete page with missing email shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, null, token, code, '#fxa-reset-link-damaged-header'
+          null, token, code, '#fxa-reset-link-damaged-header'
         ));
     },
 
     'open complete page with empty email shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, '', token, code, '#fxa-reset-link-damaged-header'
+          '', token, code, '#fxa-reset-link-damaged-header'
         ));
     },
 
     'open complete page with malformed email shows damaged screen': function () {
-      return initiateResetPassword(this, email, 0)
+      return initiateResetPassword(email, 0)
         .then(openCompleteResetPassword(
-          this, 'invalidemail', token, code, '#fxa-reset-link-damaged-header'
+          'invalidemail', token, code, '#fxa-reset-link-damaged-header'
         ));
     },
 
@@ -344,7 +345,8 @@ define([
           return FunctionalHelpers.getVerificationLink(email, 0);
         })
         .then(function (verificationLink) {
-          return openPage(self, verificationLink, '#fxa-complete-reset-password-header');
+          return this.parent
+            .then(openPage(verificationLink, '#fxa-complete-reset-password-header'));
         })
 
         .then(fillOutCompleteResetPassword(self, PASSWORD, PASSWORD))
@@ -400,7 +402,8 @@ define([
           return FunctionalHelpers.getVerificationLink(email, 0);
         })
         .then(function (verificationLink) {
-          return openPage(self, verificationLink, '#fxa-complete-reset-password-header');
+          return this.parent
+            .then(openPage(verificationLink, '#fxa-complete-reset-password-header'));
         })
 
         .then(fillOutCompleteResetPassword(self, PASSWORD, PASSWORD))
@@ -419,11 +422,10 @@ define([
       this.timeout = TIMEOUT;
       email = TestHelpers.createEmail();
 
-      var self = this;
       return this.remote
           .then(createUser(email, PASSWORD, { preVerified: true }))
           .then(function () {
-            return initiateResetPassword(self, email, 0);
+            return initiateResetPassword(email, 0);
           })
           .then(clearBrowserState());
     },
@@ -434,14 +436,14 @@ define([
       var self = this;
       return this.remote
         .then(openCompleteResetPassword(
-          this, email, token, code, '#fxa-complete-reset-password-header'
+          email, token, code, '#fxa-complete-reset-password-header'
         ))
         .then(fillOutCompleteResetPassword(self, PASSWORD, PASSWORD))
 
         .then(testElementExists('#fxa-settings-header'))
 
         .then(openCompleteResetPassword(
-          this, email, token, code, '#fxa-reset-link-expired-header'
+          email, token, code, '#fxa-reset-link-expired-header'
         ))
 
         .then(click('#resend'))
@@ -463,7 +465,8 @@ define([
 
     'browse directly to page with email on query params': function () {
       var url = RESET_PAGE_URL + '?email=' + email;
-      return openPage(this, url, '#fxa-reset-password-header')
+      return this.remote
+        .then(openPage(url, '#fxa-reset-password-header'))
 
         // email address should not be pre-filled from the query param.
         .then(testElementValueEquals('input[type=email]', ''))
