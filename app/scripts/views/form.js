@@ -83,7 +83,7 @@ define(function (require, exports, module) {
       // only enable submit if no error is passed
       // from one screen to the next.
       if (! this.model.has('error')) {
-        this.enableSubmitIfValid();
+        this.enableSubmitIfValid({ hideError: false, hideSuccess: false });
       }
 
       return proto.afterRender.call(this);
@@ -113,7 +113,7 @@ define(function (require, exports, module) {
       return values;
     },
 
-    enableSubmitIfValid () {
+    enableSubmitIfValid (options = {}) {
       // the change event can be called after the form is already
       // submitted if the user presses "enter" in the form. If the
       // form is in the midst of being submitted, bail out now.
@@ -122,8 +122,12 @@ define(function (require, exports, module) {
       }
 
       // hide success and error messages after user changes the form
-      this.hideError();
-      this.hideSuccess();
+      if (options.hideError !== false) {
+        this.hideError();
+      }
+      if (options.hideSuccess !== false) {
+        this.hideSuccess();
+      }
       if (this.isValid()) {
         this.enableForm();
       } else {

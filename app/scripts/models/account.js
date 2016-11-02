@@ -109,6 +109,7 @@ define(function (require, exports, module) {
     },
 
     // Hydrate the account
+
     fetch () {
       if (! this.get('sessionToken') || this.get('verified')) {
         return p();

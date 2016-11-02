@@ -60,11 +60,7 @@ define(function (require, exports, module) {
     template: Template,
     className: 'ready',
 
-    initialize (options) {
-      options = options || {};
-
-      this._able = options.able;
-
+    initialize (options = {}) {
       this._templateInfo = TEMPLATE_INFO[this.keyOfVerificationReason(options.type)];
     },
 

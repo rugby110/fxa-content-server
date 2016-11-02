@@ -25,21 +25,17 @@ define(function (require, exports, module) {
   const MarketingEmailErrors = require('lib/marketing-email-errors');
   const ResendMixin = require('views/mixins/resend-mixin');
   const ResumeTokenMixin = require('views/mixins/resume-token-mixin');
-  const Url = require('lib/url');
   const VerificationInfo = require('models/verification/sign-up');
   const VerificationReasonMixin = require('views/mixins/verification-reason-mixin');
 
-  var t = BaseView.t;
+  const t = BaseView.t;
 
-  var CompleteSignUpView = BaseView.extend({
+  const CompleteSignUpView = BaseView.extend({
     template: CompleteSignUpTemplate,
     className: 'complete_sign_up',
 
-    initialize (options) {
-      options = options || {};
-
-      var searchParams = Url.searchParams(this.window.location.search);
-      this._verificationInfo = new VerificationInfo(searchParams);
+    initialize (options = {}) {
+      this._verificationInfo = new VerificationInfo(this.getSearchParams());
       var uid = this._verificationInfo.get('uid');
 
       var account = options.account || this.user.getAccountByUid(uid);
@@ -70,7 +66,7 @@ define(function (require, exports, module) {
     },
 
     beforeRender () {
-      var verificationInfo = this._verificationInfo;
+      const verificationInfo = this._verificationInfo;
       if (! verificationInfo.isValid()) {
         // One or more parameters fails validation. Abort and show an
         // error message before doing any more checks.
@@ -78,12 +74,14 @@ define(function (require, exports, module) {
         return true;
       }
 
-      var code = verificationInfo.get('code');
-      var options = {
-        reminder: this._verificationInfo.get('reminder'),
+      const account = this.getAccount();
+      account.populateFromStringifiedResumeToken(this.getSearchParam('resume'));
+      const code = verificationInfo.get('code');
+      const options = {
+        reminder: verificationInfo.get('reminder'),
         service: this.relier.get('service')
       };
-      return this.user.completeAccountSignUp(this.getAccount(), code, options)
+      return this.user.completeAccountSignUp(account, code, options)
           .fail((err) => {
             if (MarketingEmailErrors.created(err)) {
               // A basket error should not prevent the
@@ -108,21 +106,28 @@ define(function (require, exports, module) {
           .then(() => {
             var account = this.getAccount();
 
-            if (! this.relier.isDirectAccess()) {
+            if (this.relier.isOAuth()) {
+              // If an OAuth user makes it here, they are either not signed in
+              // or are verifying in a different tab. Show the "Account
+              // verified!" screen to the user, the correct tab will have
+              // already transitioned back to the relier.
               this._navigateToVerifiedScreen();
-              return;
+            } else if (this.relier.isSync()) {
+              // All sync verifiers are sent to "connect another device." We
+              // want more multi-device users!
+              this.navigate('connect_another_device', { account });
+            } else {
+              return account.isSignedIn()
+                .then((isSignedIn) => {
+                  if (isSignedIn) {
+                    this.navigate('settings', {
+                      success: t('Account verified successfully')
+                    });
+                  } else {
+                    this._navigateToVerifiedScreen();
+                  }
+                });
             }
-
-            return account.isSignedIn()
-              .then((isSignedIn) => {
-                if (isSignedIn) {
-                  this.navigate('settings', {
-                    success: t('Account verified successfully')
-                  });
-                } else {
-                  this._navigateToVerifiedScreen();
-                }
-              });
           })
           .fail((err) => {
             if (AuthErrors.is(err, 'UNKNOWN_ACCOUNT')) {

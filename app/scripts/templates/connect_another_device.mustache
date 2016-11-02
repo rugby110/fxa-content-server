@@ -1,0 +1,32 @@
+<div id="main-content" class="card">
+  <div class="success visible">{{#t}}Email confirmed{{/t}}</div>
+
+  {{#canSignIn}}
+    <section>
+      <div class="graphic graphic-connect-another-device">{{#t}}Success{{/t}}</div>
+      <p>
+        {{#t}}Complete your set-up by connecting this Firefox.{{/t}}
+      </p>
+
+      <form novalidate>
+        <div class="button-row">
+          <a id="signin" class="button" href="{{{ escapedSignInUrl }}}">{{#unsafeTranslate}}Continue &rarr;{{/unsafeTranslate}}</a>
+        </div>
+      </form>
+    </section>
+
+    <div class="links">
+      <a href="{{{ escapedSupportUrl }}}" target="_blank">{{#t}}Why is this required?{{/t}}</a>
+    </div>
+  {{/canSignIn}}
+  {{^canSignIn}}
+    <section>
+      <div class="graphic graphic-connect-another-device">{{#t}}Success{{/t}}</div>
+      <p>
+        {{#t}}Complete your set-up by connecting Firefox for mobile.{{/t}}
+      </p>
+      <div class="marketing-area"></div>
+    </section>
+  {{/canSignIn}}
+</div>
+

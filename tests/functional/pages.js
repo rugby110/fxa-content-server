@@ -20,6 +20,7 @@ define([
     'confirm',
     'confirm_reset_password',
     'confirm_signin',
+    'connect_another_device',
     'cookies_disabled',
     // valid locale legal pages
     'en/legal/terms',

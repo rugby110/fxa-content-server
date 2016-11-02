@@ -437,8 +437,11 @@ define([
       });
   }
 
-  function openVerificationLinkInSameTab(email, index) {
+  function openVerificationLinkInSameTab(email, index, options) {
     var user = TestHelpers.emailToUser(email);
+
+    options = options || {};
+    var urlExtras = options.urlExtras || '';
 
     return function () {
       return this.parent
@@ -446,7 +449,7 @@ define([
           return getVerificationLink(user, index);
         })
         .then(function (verificationLink) {
-          return this.parent.get(require.toUrl(verificationLink));
+          return this.parent.get(require.toUrl(verificationLink + urlExtras));
         });
     };
   }
@@ -1210,6 +1213,20 @@ define([
     };
   }
 
+  /**
+   * Check whether an anchor has a href that equals to the expected url
+   *
+   * @param {string} selector
+   * @param {string} expected
+   * @returns {promise} rejects if test fails.
+   */
+  function testHrefEquals(selector, expected) {
+    return function () {
+      return this.parent
+        .then(testAttributeEquals(selector, 'href', expected));
+    };
+  }
+
   function testElementWasShown(context, selector) {
     return function () {
       return getRemote(context)
@@ -1532,6 +1549,7 @@ define([
     testEmailExpected: testEmailExpected,
     testErrorTextInclude: testErrorTextInclude,
     testErrorWasShown: testErrorWasShown,
+    testHrefEquals: testHrefEquals,
     testIsBrowserNotified: testIsBrowserNotified,
     testIsEventLogged: testIsEventLogged,
     testSuccessWasShown: testSuccessWasShown,

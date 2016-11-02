@@ -50,7 +50,7 @@ define(function (require, exports, module) {
 
         return view.render()
           .then(() => {
-            assert.lengthOf(view.$('.marketing-ios'), 1);
+            assert.lengthOf(view.$('.marketing-link-ios'), 1);
           });
       });
 

@@ -1,4 +1,10 @@
 .marketing-area {
+  .links {
+    // Links have `overflow: auto` by default, which causes a scrollbar to
+    // appear around the images. Get rid of that.
+    overflow: inherit;
+  }
+
   .chromeless.iframe & {
     @include respond-to('reasonableUI') {
       // This is a hack. The width of the firstrun iframe is 400px.

@@ -89,3 +89,17 @@
     width: 300px;
   }
 }
+
+.marketing-area {
+  margin-top: 20px;
+
+  .marketing-link {
+    display: inline-block;
+    height: 45px;
+    width: 152px;
+  }
+}
+
+.faint {
+  color: $color-grey-faint-text;
+}
