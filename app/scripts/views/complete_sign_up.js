@@ -106,7 +106,17 @@ define(function (require, exports, module) {
           .then(() => {
             var account = this.getAccount();
 
-            if (this.relier.isOAuth()) {
+            if (this.relier.isSync()) {
+              if (this.isInExperimentGroup('connectAnotherDevice', 'treatment')) {
+                // Sync users that are part of the experiment group who verify
+                // are sent to "connect another device". If the experiment proves
+                // useful, all users will be sent there.
+                this.navigate('connect_another_device', { account });
+              } else {
+                this._navigateToVerifiedScreen();
+              }
+              return false;
+            } else if (this.relier.isOAuth()) {
               // If an OAuth user makes it here, they are either not signed in
               // or are verifying in a different tab. Show the "Account
               // verified!" screen to the user, the correct tab will have

@@ -37,11 +37,16 @@ define(function (require, exports, module) {
     },
 
     context () {
+      const email = this._getEmail();
+      const signInContext = this._getSignInContext();
+      const escapedSignInUrl = this._getEscapedSignInUrl(signInContext, email);
+      const escapedSupportUrl = encodeURI(this._getSupportUrl);
+
       return {
         canSignIn: this._canSignIn(),
-        email: this._getEmail(),
-        escapedSignInUrl: this._getEscapedSignInUrl(),
-        escapedSupportUrl: encodeURI(this._getSupportUrl())
+        email,
+        escapedSignInUrl,
+        escapedSupportUrl
       };
     },
 
@@ -62,9 +67,16 @@ define(function (require, exports, module) {
                uap.browser.version >= 40;
     },
 
+    /**
+     * Return the sign in context that can be used to sign in to Sync.
+     * Assumes the user is only going to be called if the user can
+     * actually sign in to Sync.
+     *
+     * @returns {String}
+     * @private
+     */
     _getSignInContext() {
-      const uap = this._getUap();
-      if (uap.isAndroid()) {
+      if (this._getUap().isAndroid()) {
         return Constants.FX_FENNEC_V1_CONTEXT;
       } else {
         // desktop_v3 is safe for all desktop versions that can use
@@ -78,14 +90,14 @@ define(function (require, exports, module) {
       return 'https://support.mozilla.org';
     },
 
-    _getEscapedSignInUrl () {
+    _getEscapedSignInUrl (context, email) {
       const origin = this.window.location.origin;
 
       const params = {
-        context: this._getSignInContext(),
-        email: this._getEmail(),
+        context,
+        email,
         service: Constants.SYNC_SERVICE,
-        utm_source: 'connect_another_device' //eslint-disable-line camelcase
+        utm_source: View.UTM_SOURCE //eslint-disable-line camelcase
       };
       // Url.objToSearchString escapes each of the query parameters.
       const escapedSearchString = Url.objToSearchString(params);
@@ -96,6 +108,8 @@ define(function (require, exports, module) {
     _getEmail () {
       return this.getAccount().get('email');
     }
+  }, {
+    UTM_SOURCE: 'connect_another_device'
   });
 
   Cocktail.mixin(

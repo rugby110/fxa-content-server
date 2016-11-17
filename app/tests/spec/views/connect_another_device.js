@@ -9,9 +9,11 @@ define(function (require, exports, module) {
   const { assert } = require('chai');
   const AuthBroker = require('models/auth_brokers/base');
   const Backbone = require('backbone');
+  const Constants = require('lib/constants');
   const p = require('lib/promise');
   const Relier = require('models/reliers/relier');
   const sinon = require('sinon');
+  const Url = require('lib/url');
   const View = require('views/connect_another_device');
   const WindowMock = require('../../mocks/window');
 
@@ -83,9 +85,82 @@ define(function (require, exports, module) {
     });
 
     describe('_canSignIn', () => {
+      it('returns `false` if user is signed in', () => {
+
+      });
+
+      it('returns `false` if not on Firefox', () => {
+
+      });
+
+      it('returns `false` if on Fx for iOS', () => {
+
+      });
+
+      it('returns `false` if < Fx 40', () => {
+
+      });
+
+      it('returns true if not signed in, are on Fx Desktop >= 40', () => {
+
+      });
+
+      it('returns true if not signed in, are on Fennec >= 40', () => {
+
+      });
+    });
+
+    describe('_getSignInContext', () => {
+      it('returns fx_fennec_v1 for fennec', () => {
+        sinon.stub(view, '_getUap', () => {
+          return { isAndroid: () => true };
+        });
+
+        assert.equal(view._getSignInContext(), Constants.FX_FENNEC_V1_CONTEXT);
+      });
+
+      it('returns fx_desktop_v3 for everyone else', () => {
+        sinon.stub(view, '_getUap', () => {
+          return { isAndroid: () => false };
+        });
+        assert.equal(view._getSignInContext(), Constants.FX_DESKTOP_V3_CONTEXT);
+      });
     });
 
     describe('_getEscapedSignInUrl', () => {
+      const CONTEXT = 'fx_desktop_v3';
+      const ORIGIN = 'https://accounts.firefox.com';
+
+      beforeEach(() => {
+        windowMock.location.origin = ORIGIN;
+      });
+
+      describe('with email', () => {
+        it('URL has email query param', () => {
+          const escapedSignInUrl
+            = view._getEscapedSignInUrl(CONTEXT, 'testuser@testuser.com');
+
+          const search = escapedSignInUrl.split('?')[1];
+          const params = Url.searchParams(search);
+
+          assert.equal(params.context, CONTEXT);
+          assert.equal(params.email, 'testuser@testuser.com');
+          assert.equal(params.service, Constants.SYNC_SERVICE);
+          assert.equal(params.utm_source, View.UTM_SOURCE); //eslint-disable-line camelcase
+
+          const origin = Url.getOrigin(escapedSignInUrl);
+          assert.equal(origin, ORIGIN);
+        });
+      });
+
+      describe('without an email', () => {
+        it('URL does not have email query param', () => {
+          const escapedSignInUrl = view._getEscapedSignInUrl(CONTEXT);
+          const search = escapedSignInUrl.split('?')[1];
+          const params = Url.searchParams(search);
+          assert.notProperty(params, 'email');
+        });
+      });
     });
   });
 });
