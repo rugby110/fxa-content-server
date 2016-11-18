@@ -126,7 +126,7 @@ define(function (require, exports, module) {
 
         return view.render()
           .then(function () {
-            assert.ok(view.$('.os-general').length);
+            assert.ok(view.$('.marketing-link').length);
           });
       });
 

@@ -76,98 +76,104 @@ define(function (require, exports, module) {
 
       const account = this.getAccount();
       account.populateFromStringifiedResumeToken(this.getSearchParam('resume'));
+
       const code = verificationInfo.get('code');
       const options = {
         reminder: verificationInfo.get('reminder'),
         service: this.relier.get('service')
       };
+
       return this.user.completeAccountSignUp(account, code, options)
-          .fail((err) => {
-            if (MarketingEmailErrors.created(err)) {
-              // A basket error should not prevent the
-              // sign up verification from completing, nor
-              // should an error be displayed to the user.
-              // Log the error and nothing else.
-              this.logError(err);
+        .fail((err) => this._logAndAbsorbMarketingClientErrors(err))
+        .then(() => this._onVerificationComplete(account))
+        .fail((err) => this._onVerificationError(err));
+    },
+
+    _logAndAbsorbMarketingClientErrors (err) {
+      if (MarketingEmailErrors.created(err)) {
+        // A basket error should not prevent the
+        // sign up verification from completing, nor
+        // should an error be displayed to the user.
+        // Log the error and nothing else.
+        this.logError(err);
+      } else {
+        throw err;
+      }
+    },
+
+    _onVerificationComplete (account) {
+      this.logViewEvent('verification.success');
+      this.notifier.trigger('verification.success');
+
+      // Update the stored account data in case it was
+      // updated by completeAccountSignUp.
+      this.user.setAccount(account);
+      return this.invokeBrokerMethod('afterCompleteSignUp', account)
+        .then(() => this._navigateToNextScreen());
+    },
+
+    _navigateToNextScreen () {
+      var account = this.getAccount();
+      var relier = this.relier;
+
+      if (relier.isSync()) {
+        if (this.isInExperimentGroup('connectAnotherDevice', 'treatment')) {
+          // Sync users that are part of the experiment group who verify
+          // are sent to "connect another device". If the experiment proves
+          // useful, all users will be sent there.
+          this.navigate('connect_another_device', { account });
+        } else {
+          this._navigateToVerifiedScreen();
+        }
+      } else if (relier.isOAuth()) {
+        // If an OAuth user makes it here, they are either not signed in
+        // or are verifying in a different tab. Show the "Account
+        // verified!" screen to the user, the correct tab will have
+        // already transitioned back to the relier.
+        this._navigateToVerifiedScreen();
+      } else {
+        return account.isSignedIn()
+          .then((isSignedIn) => {
+            if (isSignedIn) {
+              this.navigate('settings', {
+                success: t('Account verified successfully')
+              });
             } else {
-              throw err;
-            }
-          })
-          .then(() => {
-            this.logViewEvent('verification.success');
-            this.notifier.trigger('verification.success');
-
-            // Update the stored account data in case it was
-            // updated by verifySignUp.
-            var account = this.getAccount();
-            this.user.setAccount(account);
-            return this.invokeBrokerMethod('afterCompleteSignUp', account);
-          })
-          .then(() => {
-            var account = this.getAccount();
-
-            if (this.relier.isSync()) {
-              if (this.isInExperimentGroup('connectAnotherDevice', 'treatment')) {
-                // Sync users that are part of the experiment group who verify
-                // are sent to "connect another device". If the experiment proves
-                // useful, all users will be sent there.
-                this.navigate('connect_another_device', { account });
-              } else {
-                this._navigateToVerifiedScreen();
-              }
-              return false;
-            } else if (this.relier.isOAuth()) {
-              // If an OAuth user makes it here, they are either not signed in
-              // or are verifying in a different tab. Show the "Account
-              // verified!" screen to the user, the correct tab will have
-              // already transitioned back to the relier.
               this._navigateToVerifiedScreen();
-            } else if (this.relier.isSync()) {
-              // All sync verifiers are sent to "connect another device." We
-              // want more multi-device users!
-              this.navigate('connect_another_device', { account });
-            } else {
-              return account.isSignedIn()
-                .then((isSignedIn) => {
-                  if (isSignedIn) {
-                    this.navigate('settings', {
-                      success: t('Account verified successfully')
-                    });
-                  } else {
-                    this._navigateToVerifiedScreen();
-                  }
-                });
             }
-          })
-          .fail((err) => {
-            if (AuthErrors.is(err, 'UNKNOWN_ACCOUNT')) {
-              verificationInfo.markExpired();
-              err = AuthErrors.toError('UNKNOWN_ACCOUNT_VERIFICATION');
-            } else if (
-                AuthErrors.is(err, 'INVALID_VERIFICATION_CODE') ||
-                AuthErrors.is(err, 'INVALID_PARAMETER')) {
-
-              // When coming from sign-in confirmation verification, show a
-              // verification link expired error instead of damaged verification link.
-              // This error is generated because the link has already been used.
-              if (this.isSignIn()) {
-                // Disable resending verification, can only be triggered from new sign-in
-                verificationInfo.markUsed();
-                err = AuthErrors.toError('REUSED_SIGNIN_VERIFICATION_CODE');
-              } else {
-                // These server says the verification code or any parameter is
-                // invalid. The entire link is damaged.
-                verificationInfo.markDamaged();
-                err = AuthErrors.toError('DAMAGED_VERIFICATION_LINK');
-              }
-            } else {
-              // all other errors show the standard error box.
-              this.model.set('error', err);
-            }
-
-            this.logError(err);
-            return true;
           });
+      }
+    },
+
+    _onVerificationError (err) {
+      const verificationInfo = this._verificationInfo;
+
+      if (AuthErrors.is(err, 'UNKNOWN_ACCOUNT')) {
+        verificationInfo.markExpired();
+        err = AuthErrors.toError('UNKNOWN_ACCOUNT_VERIFICATION');
+      } else if (
+          AuthErrors.is(err, 'INVALID_VERIFICATION_CODE') ||
+          AuthErrors.is(err, 'INVALID_PARAMETER')) {
+
+        // When coming from sign-in confirmation verification, show a
+        // verification link expired error instead of damaged verification link.
+        // This error is generated because the link has already been used.
+        if (this.isSignIn()) {
+          // Disable resending verification, can only be triggered from new sign-in
+          verificationInfo.markUsed();
+          err = AuthErrors.toError('REUSED_SIGNIN_VERIFICATION_CODE');
+        } else {
+          // These server says the verification code or any parameter is
+          // invalid. The entire link is damaged.
+          verificationInfo.markDamaged();
+          err = AuthErrors.toError('DAMAGED_VERIFICATION_LINK');
+        }
+      } else {
+        // all other errors show the standard error box.
+        this.model.set('error', err);
+      }
+
+      this.logError(err);
     },
 
     context () {
